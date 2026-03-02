@@ -1,0 +1,2 @@
+# hiragana_katakan_kakikatamaster
+ひらがな・カタカナかきかたマスター
