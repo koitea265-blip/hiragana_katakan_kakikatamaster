@@ -256,7 +256,7 @@
 
     // 50音表データ
     const HIRA_TABLE = ['あ','い','う','え','お','か','き','く','け','こ','さ','し','す','せ','そ','た','ち','つ','て','と','な','に','ぬ','ね','の','は','ひ','ふ','へ','ほ','ま','み','む','め','も','や','','ゆ','','よ','ら','り','る','れ','ろ','わ','','','','を','ん','','','',''];
-    const KATA_TABLE = ['ア','イ','ウ','エ','オ','カ','キ','ク','ケ','コ','サ','シ','ス','セ','ソ','タ','チ','ツ','テ','ト','ナ','ニ','ヌ','ネ','ノ','ハ','ヒ','フ','ヘ','ホ','マ','ミ','ム','メ','モ','ヤ','','ユ','','ヨ','ラ','リ','ル','レ','ロ','ワ','','','','ヲ','ン','','','',''];
+    const KATA_TABLE = ['ア','イ','ウ','エ','オ','カ','キ','ク','ケ','コ','サ','シ','ス','セ','ソ','タ','チ','ツ','テ','ト','ナ','ニ','ヌ','NE','ノ','ハ','ヒ','フ','ヘ','ホ','マ','ミ','ム','メ','モ','ヤ','','ユ','','ヨ','ラ','リ','ル','レ','ロ','ワ','','','','ヲ','ン','','','',''];
     const HIRA_LIST = HIRA_TABLE.filter(c => c !== '');
     const KATA_LIST = KATA_TABLE.filter(c => c !== '');
 
@@ -308,7 +308,6 @@
         const match = line.match(/^(\d)年生(?:\(追加\))?\s*(.)(.*)$/); if(!match) return;
         const grade = parseInt(match[1], 10); const char = match[2]; const readings = match[3];
         
-        // ★修正: 漢字データそのものに「char: char」を含めて、自分が何の文字かを忘れさせないようにする
         if (!kanjiStore[char]) { kanjiStore[char] = { char: char, baseGrade: grade, on: [], kun: [] }; }
         
         const onMatch = readings.match(/^[ア-ンヴー、,]+/); let onPart = onMatch ? onMatch[0] : ""; let kunPart = readings.substring(onPart.length);
@@ -358,7 +357,7 @@
     // モード切替
     function changeKanaMode(mode) {
       appState.mode = mode;
-      appState.playMode = 'free'; // モード切替時はフリー選択に
+      appState.playMode = 'free'; 
       
       const btnH = el('modeHiraganaBtn'); const btnK = el('modeKatakanaBtn');
       if (mode === 'hiragana') {
@@ -494,7 +493,6 @@
         randBtn.classList.remove('opacity-40', 'grayscale', 'scale-95');
         seqBtn.classList.add('opacity-40', 'grayscale', 'scale-95');
       } else {
-        // 自分で選んだ時（free）は両方通常に戻す
         seqBtn.classList.remove('opacity-40', 'grayscale', 'scale-95');
         randBtn.classList.remove('opacity-40', 'grayscale', 'scale-95');
       }
@@ -532,16 +530,13 @@
       k.paths.forEach((p, i) => {
         const bgPath = document.createElementNS("http://www.w3.org/2000/svg", "path"); bgPath.setAttribute("d", p); bgPath.setAttribute("class", "bg-stroke-path"); animeBgGroup.appendChild(bgPath);
         
-        // パスの実際の長さを計算する
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); const tempP = document.createElementNS("http://www.w3.org/2000/svg", "path"); tempP.setAttribute("d", p); svg.appendChild(tempP); document.body.appendChild(svg);
         const pathLen = tempP.getTotalLength() + 10;
         const startPt = tempP.getPointAtLength(0); document.body.removeChild(svg);
         
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path"); path.setAttribute("d", p); path.setAttribute("class", "stroke-path"); path.id = `anime-s-${i}`; 
-        // 1000固定ではなく、実際の長さを設定
         path.style.strokeDasharray = pathLen; 
         path.style.strokeDashoffset = pathLen; 
-        // ★修正: 長さで隠すだけでなく、描くまでは「完全に透明」にする
         path.style.opacity = "0"; 
         strkGrp.appendChild(path);
 
@@ -586,7 +581,6 @@
       playTone(440, 'sine', 0.1);
     }
 
-    // ★修正: 練習中でも、完了後でもリスタートできるように条件を変更
     function restartPractice() { 
       if (appState.currentKanji) { 
         appState.hasMistaken = true; 
@@ -598,10 +592,8 @@
       appState.hasMistaken = true;
       playBuzzer();
       
-      // かんじモードの場合は、間違えたら書き順アニメの画面を開く（再生はボタンを押してから）
-      if (appState.mode === 'kanji') {
-        showAnime();
-      }
+      // 書き順を間違えたら、モードに関わらず書き順アニメの画面を開く
+      showAnime();
     }
 
     function showAnime() {
@@ -624,8 +616,7 @@
         const pEl = el(`anime-s-${i}`); 
         if(pEl) { 
           pEl.style.transition = 'none'; 
-          pEl.style.strokeDashoffset = pEl.style.strokeDasharray; // 線の長さに合わせてリセット
-          // ★修正: リセット時も完全に透明にする
+          pEl.style.strokeDashoffset = pEl.style.strokeDasharray; 
           pEl.style.opacity = "0"; 
         } 
         const nEl = el(`anime-num-${i}`); if(nEl) { nEl.style.opacity = "0"; } 
@@ -635,11 +626,9 @@
         const pEl = el(`anime-s-${i}`); if (!pEl) continue; const nEl = el(`anime-num-${i}`); if (nEl) nEl.style.opacity = "1";
         await new Promise(r => setTimeout(r, 600));
         
-        // 線の長さに応じて描画スピードを計算する（点は素早く、長い線はじっくり）
         const pathLen = parseFloat(pEl.style.strokeDasharray) || 50;
         const durationMs = Math.max(200, (pathLen / 50) * (11 - speed) * 150); 
         
-        // ★修正: アニメーション開始の瞬間に透明を解除して表示する
         pEl.style.opacity = "1";
         pEl.style.transition = `stroke-dashoffset ${durationMs}ms linear`; 
         pEl.getBoundingClientRect(); 
@@ -687,7 +676,6 @@
           appState.isPracticing = false; el('writeArea').classList.add('locked');
           el('showAnimeBtnRight').classList.add('hidden'); el('nextBtnRight').classList.remove('hidden');
           
-          // ★修正: 書き終わったらボタンを「もういちど かく」に変更する
           if (el('clearBtnText')) el('clearBtnText').innerText = "もういちど かく";
           
           playFanfare(); burstConfetti(); showExcellentPopup();
@@ -703,7 +691,6 @@
               renderGojuon(); 
             }, 1500);
           } else {
-            // 書き順を見た場合はコレクションに追加せず、飛ぶアニメーションもしない
             setTimeout(() => { 
               hideExcellentPopup(); 
               renderGojuon(); 
@@ -759,7 +746,6 @@
     function showExcellentPopup() { el('excellentPopup').classList.remove('opacity-0', 'scale-50'); el('excellentPopup').classList.add('opacity-100', 'scale-100'); }
     function hideExcellentPopup() { el('excellentPopup').classList.remove('opacity-100', 'scale-100'); el('excellentPopup').classList.add('opacity-0', 'scale-50'); }
 
-    // CSSトランジションを使った確実なアニメーション方式に変更
     function flyToCollection(char) {
       const sourceGrid = el('writeGrid'); if (!sourceGrid) { renderMasteredList(); return; }
       const sourceRect = sourceGrid.getBoundingClientRect(); 
@@ -767,7 +753,6 @@
       const targetRect = targetList.getBoundingClientRect(); 
       
       const flier = document.createElement('div');
-      // z-[9999]で確実にすべての要素より手前に表示
       flier.className = 'fixed z-[9999] kyokasho text-amber-500 bg-white border-4 border-amber-300 rounded-full flex items-center justify-center shadow-2xl font-black pointer-events-none';
       flier.style.width = sourceRect.width + 'px'; 
       flier.style.height = sourceRect.height + 'px'; 
@@ -777,13 +762,11 @@
       flier.style.lineHeight = '1'; 
       flier.innerText = char; 
       
-      // CSSによる滑らかなアニメーション設定
       flier.style.transition = 'all 1.2s cubic-bezier(0.25, 0.1, 0.25, 1)';
       flier.style.transformOrigin = 'center center';
       
       document.body.appendChild(flier);
 
-      // コレクションエリアの先頭付近をターゲットにする
       const targetCenterX = targetRect.left + 26; 
       const targetCenterY = targetRect.top + 26;
       const sourceCenterX = sourceRect.left + sourceRect.width / 2; 
@@ -793,7 +776,6 @@
       const translateY = targetCenterY - sourceCenterY;
       const targetScale = 36 / sourceRect.width;
 
-      // ブラウザにDOMを認識させたあとに変化を与える
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           flier.style.transform = `translate(${translateX}px, ${translateY}px) scale(${targetScale}) rotate(360deg)`;
@@ -801,7 +783,6 @@
         });
       });
 
-      // アニメーション完了後の処理
       setTimeout(() => { 
         playTone(880, 'sine', 0.1); 
         setTimeout(() => playTone(1108.73, 'sine', 0.15), 80); 
